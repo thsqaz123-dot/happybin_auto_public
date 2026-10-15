@@ -1,0 +1,33 @@
+__pycache__/
+*.pyc
+*.spec
+.DS_Store
+user_data/
+build/
+dist/
+test_*.py
+!test_auto.py
+!test_blog_cafe.py
+
+# Local environments and credentials
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Authenticated browser state and diagnostic captures
+debug_html/
+session.json
+user_config.json
+playwright-report/
+test-results/
+*.log
+
+# Local code index and browser diagnostics
+/graft/
+.auth/
+*.har
+trace*.zip
