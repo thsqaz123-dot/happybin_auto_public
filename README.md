@@ -1,73 +1,172 @@
-# 해피빈 자동 수집기
+# Happybin Auto
 
-Python과 Playwright를 사용하는 Windows 데스크톱 프로그램입니다. 로그인한
-네이버 계정으로 블로그 글 발행, 카페 글 등록과 콩 수집을 수행합니다.
+> **Legal notice** — This is an independent, unofficial project and is not affiliated with, endorsed by, or sponsored by NAVER or Happybean. Use it only with accounts and destinations you are authorized to access, and in compliance with applicable laws, [NAVER's Terms of Service](https://policy.naver.com/policy/service.html), and relevant service and community policies. You are responsible for actions performed through your account. The software is provided **as is**, without warranties to the extent permitted by applicable law. Successful collection, continued service access, and protection from account restrictions are not guaranteed. Third-party names and marks belong to their respective owners.
 
-## 개발 환경
+**A Windows desktop tool for automating NAVER Happybean collection workflows with Python and Playwright.**
 
-Python 3.10 이상이 필요합니다. Windows PowerShell에서:
+Start a guided workflow from a desktop interface or the command line, sign in through the browser, and reuse a local browser profile between sessions.
+
+[Getting started](#getting-started) · [Configuration](#configuration) · [Usage](#usage) · [Privacy](#privacy-and-local-data) · [Limitations](#known-limitations)
+
+## Overview
+
+- **Desktop and CLI modes** — Start, stop, and monitor the workflow through a Windows interface, or launch it from a terminal.
+- **Browser-based sign-in** — Use QR login or sign in manually in the browser. Account passwords are not configured in the source code.
+- **Persistent sessions** — Reuse a local Chromium profile and a session backup when available.
+- **Collection workflows** — Attempt blog publishing, optional cafe posting, banner interactions, and Happybean collection, with progress and result reporting.
+- **Configurable destinations** — Set the cafe destination through environment variables rather than committed account-specific settings.
+
+The application interface and most runtime messages are currently in Korean.
+
+> **Before running:** This application can publish real blog and cafe posts. Review the account, destination, and generated content in [`content/templates.py`](content/templates.py) first. A collection result is an automation observation, not a guarantee that a reward was credited.
+
+## Requirements
+
+| Requirement | Details |
+| --- | --- |
+| Operating system | Windows with an interactive desktop session |
+| Python | Python 3.10 or later |
+| Browser | Playwright-managed Chromium, installed separately below |
+| Account | A NAVER account you are authorized to use |
+| Cafe access | Membership and posting permission for the configured cafe, if enabled |
+
+Full automation depends on Windows display APIs. Linux and macOS are not supported for the complete workflow. This repository provides source code; it does not include a packaged executable or an executable build script.
+
+## Getting started
+
+Open **PowerShell** and clone the repository:
+
+```powershell
+git clone https://github.com/thsqaz123-dot/happybin_auto_public.git
+cd happybin_auto_public
+```
+
+Create an isolated environment and install the dependencies and browser:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
 $env:PLAYWRIGHT_BROWSERS_PATH = "0"
-.\.venv\Scripts\python -m playwright install chromium
-.\.venv\Scripts\python main.py --help
-.\.venv\Scripts\python main.py
+.\.venv\Scripts\python.exe -m playwright install chromium
 ```
 
-`PLAYWRIGHT_BROWSERS_PATH=0`으로 설치해야 로그인 모듈의 기본 브라우저
-검색 위치와 일치합니다. 별도 경로를 쓰면 설치와 실행에 같은 값을 지정하세요.
+`PLAYWRIGHT_BROWSERS_PATH=0` installs Chromium where the application's default browser lookup expects it. If you choose another browser directory, use the same value during installation and execution.
 
-Linux에서는 다음과 같이 의존성 설치와 CLI 점검을 할 수 있습니다.
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-PLAYWRIGHT_BROWSERS_PATH=0 .venv/bin/python -m playwright install chromium
-.venv/bin/python main.py --help
-.venv/bin/python main.py --status
-```
-
-실제 자동화의 화면 크기 계산은 `ctypes.windll`을 사용하므로 Windows가
-필요합니다. Linux GUI/전체 자동화 실행은 현재 지원되지 않습니다.
-
-## 실행과 데이터
-
-- 기본 실행: Windows UI
-- `python main.py --cli --user 사용자명`: 자동화 실행
-- `python main.py --status`: 로컬 세션 백업 상태
-- `python main.py --list-users`: 등록 사용자 목록
-- `python main.py --reset-login`: 해당 사용자의 세션과 브라우저 프로필 삭제
-
-카페 작업은 환경변수 `HAPPYBIN_CAFE_ID`(숫자 ID)와
-`HAPPYBIN_CAFE_URL`(카페 주소)을 둘 다 설정한 경우에만 실행합니다.
-PowerShell에서 다음 예시를 자신의 카페 정보로 바꿔 설정하세요.
+Check the available options, then launch the desktop interface:
 
 ```powershell
-$env:HAPPYBIN_CAFE_ID = "12345678"
-$env:HAPPYBIN_CAFE_URL = "https://cafe.naver.com/your-cafe"
+.\.venv\Scripts\python.exe main.py --help
+.\.venv\Scripts\python.exe main.py
 ```
 
-미설정 시 카페 글쓰기와 카페 메인 배너 스캔을 건너뜁니다. `.env` 파일은
-자동으로 읽지 않습니다. 실행 전 목적지와 계정 권한을 확인하세요.
-블로그는 비공개 발행을 시도하지만
-현재 코드는 비공개 선택 성공 여부를 강제하지 않으므로 민감한 본문에 사용하지
-마세요. 카페에는 실제 게시글이 등록됩니다.
+Follow the browser prompts to sign in. Keep the browser open and avoid interacting with its tabs while automation is running.
 
-`test_auto.py`, `test_blog_cafe.py`, `verify_*.py`, `check_banners.py`는
-실제 로그인과 게시글 작성을 수행하는 수동 도구입니다. 자동 단위 테스트로
-실행하지 마세요. 개인정보가 포함된 진단 캡처와 전용 디버그 스크립트는
-공개 대상 소스에서 제거했습니다.
+## Configuration
 
-세션과 브라우저 프로필은 `%LOCALAPPDATA%/HappyBeanAuto/<사용자명>/`에
-저장됩니다. `LOCALAPPDATA`가 없으면 `~/AppData/Local/HappyBeanAuto/`를
-사용합니다. 쿠키 백업은 암호화되지 않은 로컬 파일이므로 OS 계정 권한으로
-보호하고 저장소, 공유 폴더, 배포 ZIP에 포함하지 마세요.
+Cafe automation is optional. Set **both** variables in the same PowerShell session before launching the application:
 
-## 공개 배포 범위
+```powershell
+# Replace these examples with a cafe you are authorized to use.
+$env:HAPPYBIN_CAFE_ID = "12345678"
+$env:HAPPYBIN_CAFE_URL = "https://cafe.naver.com/your-cafe"
 
-이 저장소는 검토한 소스만 새 이력으로 시작합니다. 인증된 페이지 캡처,
-로그인 세션, 브라우저 프로필, 실행파일 배포 ZIP은 포함하지 않습니다.
-현재 소스에는 `build.bat`가 없어 Windows 배포 빌드는 제공하지 않습니다.
-라이선스는 아직 지정되어 있지 않습니다.
+.\.venv\Scripts\python.exe main.py
+```
+
+| Variable | Expected value | Default behavior |
+| --- | --- | --- |
+| `HAPPYBIN_CAFE_ID` | A positive numeric cafe ID matching the destination | Defaults to `0`; cafe posting is disabled |
+| `HAPPYBIN_CAFE_URL` | The corresponding NAVER cafe URL | Defaults to an empty value; cafe posting is disabled |
+| `PLAYWRIGHT_BROWSERS_PATH` | `0`, or a custom browser installation directory | The login module defaults to `0` if unset |
+
+With either cafe setting missing, cafe posting and cafe main-page banner scanning are skipped. Other workflow stages remain enabled. A nonnumeric cafe ID causes a configuration error at startup.
+
+The application does **not** automatically load `.env` files. These PowerShell assignments apply to the current terminal session and processes launched from it.
+
+## Usage
+
+Use the virtual environment's Python executable for every command:
+
+| Command | Action |
+| --- | --- |
+| `main.py` | Open the desktop interface |
+| `main.py --cli` | Run the automation workflow in the terminal |
+| `main.py --cli --user example-user` | Run with a named local data profile |
+| `main.py --status` | Display the local session-backup status |
+| `main.py --list-users` | List locally registered profiles |
+| `main.py --reset-login` | Delete the selected profile's session backup and browser data |
+| `main.py --help` | Show all available options |
+
+For example:
+
+```powershell
+.\.venv\Scripts\python.exe main.py --cli
+.\.venv\Scripts\python.exe main.py --status
+```
+
+`--user` selects a **local data profile**, not a NAVER login ID. The signed-in account is determined by the browser session. Without `--user`, commands use the current operating-system username; the desktop interface also uses that username.
+
+`--reset-login` removes local login data. It does not delete published posts or revoke every session associated with the NAVER account.
+
+## Privacy and local data
+
+User data is stored outside the source directory:
+
+```text
+%LOCALAPPDATA%/HappyBeanAuto/<profile>/
+├── browser/          # Persistent Chromium profile
+├── session.json      # Browser storage-state backup, including cookies
+└── user_config.json  # Local profile settings
+```
+
+If `LOCALAPPDATA` is unavailable, the fallback root is `~/AppData/Local/HappyBeanAuto/`. A legacy `user_data/` directory can be migrated on first use when the new data root does not yet exist.
+
+Session backups are **not encrypted by this application**. Protect the data directory with operating-system permissions, especially on shared computers. Browser profiles and cookies can carry account access and should be treated as sensitive.
+
+Do not commit or upload session files, browser profiles, `.env` files, authenticated page captures, or unredacted logs. Ignore rules cover common local artifacts, but they do not sanitize files already tracked by Git. Review logs and screenshots before sharing them in an issue.
+
+## Known limitations
+
+- **Blog privacy is not guaranteed.** The workflow attempts private publication but does not verify that the private setting was successfully applied before publishing. Do not use sensitive post content.
+- **Cafe posting creates real content.** Check membership, posting permissions, destination settings, and community rules before enabling it.
+- **Third-party pages change.** NAVER interface changes, authentication challenges, network conditions, and campaign availability can interrupt the workflow or affect result detection.
+- **Reward detection is approximate.** Browser navigation and page text are used as signals; verify actual rewards through NAVER when needed.
+- **Source availability is not a security guarantee.** Dependency compatibility and secret-pattern checks do not establish that every runtime path or future dependency version is safe.
+
+## Project structure
+
+```text
+main.py               CLI entry point and desktop launcher
+automation.py         Shared workflow orchestration
+ui.py                 Windows desktop interface
+config.py             Environment-based cafe settings and timing
+content/templates.py  Generated post titles and bodies
+modules/
+├── login.py           Browser lifecycle and sign-in
+├── session_manager.py Session backup and login-state checks
+├── user_manager.py    Local profile settings and data management
+├── paths.py           Application and user-data paths
+├── blog.py            Blog publishing workflow
+├── cafe.py            Cafe posting workflow
+├── bean_banner.py     Banner discovery and interaction
+├── happybean.py       Happybean collection workflow
+├── kin.py             Standalone Knowledge iN banner helper
+└── utils.py           Navigation and Windows display helpers
+```
+
+## Development and contributions
+
+Read [`AGENTS.md`](AGENTS.md) for repository conventions. Keep changes focused and describe what you verified when opening a pull request. Use placeholders for accounts and destinations in examples.
+
+`test_auto.py`, `test_blog_cafe.py`, `verify_blog.py`, `verify_cafe.py`, and `check_banners.py` are **manual integration tools**. They can open authenticated browser sessions and publish real posts. They are not isolated unit tests and should not be run unattended against a personal or production account.
+
+A basic syntax check that does not execute the workflows is:
+
+```powershell
+.\.venv\Scripts\python.exe -m compileall -q main.py automation.py ui.py config.py modules content
+```
+
+## License
+
+No license has been designated for this repository. This README does not grant an additional license to the project or to third-party software. Dependencies and third-party assets remain subject to their own licenses and terms.
